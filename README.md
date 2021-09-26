@@ -3,7 +3,7 @@ GSAclone is a simple python script for rclone, written with the purpose of using
 Though they are not really randomized, at least they are cycled through, and you won't have to manually specify which service account you use on each command.
 
 The other solution such as AutoRclone and gclone doesn't work on me, when I tried it a few months ago.  
-So I decided to write my own rclone script.
+So I decided to write my own rclone script and voila, this is it. The script is far from perfect, but at least it gets the job done for my use case.
 
 # How to use (Windows only)
 1). Setting up the environment:  
