@@ -2,6 +2,9 @@
 GSAclone is a simple python script for rclone, written with the purpose of using multiple Google service accounts on Google Drive and "randomize" them.
 Though they are not really randomized, at least they are cycled through, and you won't have to manually specify which service account you use on each command.
 
+The other solution such as AutoRclone and gclone doesn't work on me, when I tried it a few months ago.  
+So I decided to write my own rclone script.
+
 # How to use (Windows only)
 1). Setting up the environment:  
 Your service accounts should be first renamed into "service_account_X.json" where X is the number from 0 to (let's say) 100.
@@ -38,7 +41,7 @@ python GSAclone.py --mode copy/sync --source remote_name_src: --destination remo
 ```
 
 # Configurations
-Below is the configurations that you can modify to your needs.
+Below are the configurations that you can modify to your needs.
 ```
 var_loop = 3                              # Tells the script how many times it should be looping for.
 var_sleep = 60                            # Tells the script how long it should delay the next routine.
