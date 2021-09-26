@@ -46,12 +46,12 @@ Below are the configurations that you can modify to your needs.
 var_loop = 3                              # Tells the script how many times it should be looping for.
 var_sleep = 60                            # Tells the script how long it should delay the next routine.
 
-rclone_path = "D:/Utility/_rclone"        # Path to where you store rclone. You do NOT need to type in "/rclone.exe"!
+rclone_path = "D:/path/to/rclone"        # Path to where you store rclone. You do NOT need to type in "/rclone.exe"!
 rclone_sa_path = "default"                # Set this to "default" to use the same path as your rclone path, or set your own path.
 
 
 rclone_dry_run = "disabled"               # Tells rclone to run in simulated mode (--dry-run). (Default is "disabled")
-rclone_verbose = "enabled"               # Print useful information onto the console (or a log file). (Default is "disabled")
+rclone_verbose = "disabled"               # Print useful information onto the console (or a log file). (Default is "disabled")
 rclone_verbose_level = "default"          # Set the verbose level ("default" or "super"). (Default is "default")
 
 rclone_log_path = "default"             # Set this to "default" to use the same path as your rclone path, or set your own path.
@@ -70,16 +70,18 @@ rclone_logging = "disabled"               # Set to "enabled" if you wish rclone 
 
 rclone_check_first = "enabled"            # Tells rclone to perform check first before transfer. (Default is "enabled")
 rclone_fast_list = "enabled"              # Enable --fast-list, useful to reduce the API call but uses more memory. (Default is "enabled")
-rclone_modtime = "noupdate"               # Tells rclone to update the modified time of a file. (Set to "update" or "noupdate". Default is "update")
+rclone_modtime = "update"               # Tells rclone to update the modified time of a file. (Set to "update" or "noupdate". Default is "update")
 
-rclone_compare = "checksum"                # rclone compare mode:
+rclone_compare = "default"                # rclone compare mode:
                                           # default            : rclone will look at modification time and size.
                                           # checksum           : rclone will look at checksum and size.
                                           # only-mod-time      : rclone will look at checksum and modification time.
                                           # only-size          : rclone will look at file size only.
                                           # only-checksum      : rclone will look at checksum only.
 ```
-You could modify the ```rclone_args = ""```, but for the sake of keeping the script having any issue, I recommend you not to add more rclone flags.
+If ```rclone_sa_path = "default"``` you have to store your service accounts inside a folder name "service_account" in your rclone folder.
+
+You could modify the ```rclone_args = ""```, but for the sake of keeping the script from having any issue (that I may not be able to help you), I recommend you not to add more rclone flags.
 If you know exactly what you are doing and you know how to read the flow of the script, feel free to modify it, of course!
 
 # Disclaimer
