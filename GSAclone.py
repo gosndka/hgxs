@@ -159,7 +159,7 @@ def GSAclone():
         print(f'Using service account: {service_account}')
         print('')
 
-        cmd = f'"{rclone_path}/rclone.exe" {mode} "{source}" "{destination}" {dry_run} {verbose} {show_progress} {compare} {check_first} {fast_list} {update_mod_time} {flags} --drive-service-account-file={service_account_path}/{service_account}'
+        cmd = f'"{rclone_path}/rclone.exe" {mode} "{source}" "{destination}" {dry_run} {verbose} {show_progress} {compare} {check_first} {fast_list} {update_mod_time} {flags} --drive-service-account-file="{service_account_path}/{service_account}"'
         subprocess.run(cmd, shell=True)
 
         print('')
