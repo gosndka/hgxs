@@ -1,3 +1,6 @@
+The script have been completely rewritten from scratch!  
+This readme will be updated later...
+
 # About GSAclone
 GSAclone is a simple python script for rclone, written with the purpose of using multiple Google service accounts on Google Drive and "randomize" them.
 Though they are not really randomized, at least they are cycled through, and you won't have to manually specify which service account you use on each command.
