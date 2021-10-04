@@ -46,39 +46,96 @@ def GSAclone():
     cmd_args = vars(parser.parse_args())
 
     #==================================================#==================================================#
-    var_loop = 3
-    var_sleep = 60
+    #
+    # Configurations
+    #
 
-    rclone_path = pathlib.Path(r'D:\path\to\rclone') # Only change the text inside the single quotation ('') maarks!
-    service_account_path = pathlib.Path(r'D:\path\to\service_account') # Only change the text inside the single quotation ('') maarks!
+    var_loop = 3 # (Default is: "3")
+    # Tells the script how many times it should be looping for.
+    # Looping it 3 times should be enough, as 740 x 3 is more than 2TB,
+    # more than the limit of copy activity (including server-side) you can do on Google Drive.
+
+    var_sleep = 60 # (Default is: "60")
+    # Tells the script how long it should delay the next routine.
+    # Set it to "0" to disable the delay.
+    # This isn't really necessary, but oh well, whatever...
+
+    rclone_path = pathlib.Path(r'D:/path/to/rclone')
+    # Path to where you store your rclone.
+    # Only change the text inside the single quotation ('') marks!
+    # You also do NOT need to type in "/rclone.exe" nor "rclone.exe" at the end of the path!
+
+    log_path = rclone_path # (Default is the same as "rclone_path")
+    # Set this to "default" to use the same path as your rclone path, or set your own path.
+
+    service_account_path = pathlib.Path(r'D:/path/to/service_accounts')
+    # Path to where you store your service account files.
+    # Only change the text inside the single quotation ('') marks!
+    
     service_account_list = []
+    # Do NOT modify this!
 
-    dry_run = False
-    verbose = False
-    verbose_level = 'default' # Set this to either "default" or "super".
-    # logging = False
-    # log_path = ''
-    # log_mode = 'default'
-    # log_level = 'default'
-    show_progress = True
-    check_first = False
-    fast_list = False
-    update_mod_time = True
-    compare = 'default'   # rclone compare mode:
-                            # default            : rclone will look at modification time and size.
-                            # checksum           : rclone will look at checksum and size.
-                            # only-mod-time      : rclone will look at checksum and modification time.
-                            # only-size          : rclone will look at file size only.
-                            # only-checksum      : rclone will look at checksum only.
+    dry_run = False # (Default is: "False")
+    # Set this to "True" to run rclone in simulated mode and make no changes.
+
+    verbose = False # (Default is: "False")
+    # Set this to "True" and you will see magic.
+    # Oh, by the way, you can't have verbose and logging enabled at the same time.
+    # This script will prioritize verbose over logging.
+
+    verbose_level = 'default' # (Default is: "default")
+    # Set the level of verbose. ("default" or "super")
+
+    logging = False # (Default is: "False")
+    # Throws whatever rclone prints on your screen into a file.
+    # Please keep in mind that if you enable logging, you could ends up with a huge log file size
+    # as the script is going to repeat itself for an X amount of time (as specified by the variable "var_loop" above).
+
+    log_name = 'GSAclone' # (Default is "GSAclone")
+    # The name of the log file.
+    # Feel free to change it to whatever you want.
+
+    log_mode = 'default' # (Default is: "default")
+    # Set it to "json" if you want rclone to output the log into a json file, or set it to "default".
+
+    log_level = 'default' # (Default is: "default")
+    # The level of information that you want rclone to print into the log file.
+    # Debugging levels:
+    # DEBUG is equivalent to -vv. It outputs lots of debug info - useful for bug reports and really finding out what rclone is doing.
+    # INFO is equivalent to -v. It outputs information about each transfer and prints stats once a minute by default.
+    # NOTICE is the default log level if no logging flags are supplied. It outputs very little when things are working normally. It outputs warnings and significant events.
+    # ERROR is equivalent to -q. It only outputs error messages.
+
+    show_progress = True # (Default is: "True")
+    check_first = False # (Default is: "False")
+    fast_list = False # (Default is: "False")
+    update_mod_time = True # (Default is: "True")
+
+    compare = 'default' # (Default is: "default")
+    # rclone compare mode:
+    # default            : rclone will look at modification time and size.
+    # checksum           : rclone will look at checksum and size.
+    # only-mod-time      : rclone will look at checksum and modification time.
+    # only-size          : rclone will look at file size only.
+    # only-checksum      : rclone will look at checksum only.
+
     flags = '--tpslimit 10\
             --checkers 10\
             --transfers 10\
             --max-transfer 740G\
             --drive-stop-on-upload-limit=true\
             --drive-server-side-across-configs'
+    #
+    # I'm thinking of using a config file instead, but as I still don't know how to use configparse, that's for another day lol
+    # For now, if you want to change something, edit the script directly.
+    #
     #==================================================#==================================================#
 
     #==================================================#==================================================#
+    #
+    # To do later: add checking whether the paths specified above do exist or not.
+    #
+
     if (cmd_args['mode'] == "copy") or (cmd_args['mode'] == "sync"):
         mode = cmd_args['mode']
     else:
@@ -100,6 +157,11 @@ def GSAclone():
         dry_run = ''
     
     if verbose is True:
+        if logging is True:
+            logging = False
+        else:
+            pass
+
         if verbose_level == 'super':
             verbose = '-vv'
         else:
@@ -137,6 +199,41 @@ def GSAclone():
         compare = '--checksum --ignore-size'
     else:
         compare = ''
+    
+    if logging is True:
+        if verbose is True:
+            logging = False
+        else:
+            pass
+
+        if log_path == '':
+            sys.exit('The log path cannot be empty!')
+        else:
+            pass
+        
+        if log_mode == 'json':
+            log_mode = "--use-json-log"
+            log_ext = '.json'
+        else:
+            log_mode = ''
+            log_ext = '.txt'
+        
+        if log_level == "debug" or log_level == "DEBUG":
+            log_level = "DEBUG"
+        elif log_level == "info" or log_level == "INFO":
+            log_level = "INFO"
+        elif log_level == "error" or log_level == "ERROR":
+            log_level = "DEBUG"
+        else:
+            log_level = "NOTICE"
+        
+        logging = f'--log-file="{log_path}/{log_name}{log_ext}" {log_mode} --log-level {log_level}'
+    else:
+        logging = ''
+        log_path = ''
+        log_mode = ''
+        log_level = ''
+        log_ext = ''
     #==================================================#==================================================#
 
     # Get all the service account names under the specified path (service_account_path).
@@ -159,7 +256,7 @@ def GSAclone():
         print(f'Using service account: {service_account}')
         print('')
 
-        cmd = f'"{rclone_path}/rclone.exe" {mode} "{source}" "{destination}" {dry_run} {verbose} {show_progress} {compare} {check_first} {fast_list} {update_mod_time} {flags} --drive-service-account-file="{service_account_path}/{service_account}"'
+        cmd = f'"{rclone_path}/rclone.exe" {mode} "{source}" "{destination}" {dry_run} {verbose} {show_progress} {compare} {check_first} {fast_list} {update_mod_time} {flags} --drive-service-account-file="{service_account_path}/{service_account}" {logging}'
         subprocess.run(cmd, shell=True)
 
         print('')
@@ -167,6 +264,8 @@ def GSAclone():
 
         print(f'Delaying the next task for {var_sleep} second(s).')
         time.sleep(var_sleep)
+
+    sys.exit()
 
 if __name__ == '__main__':
     GSAclone()
