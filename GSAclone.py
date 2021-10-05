@@ -164,12 +164,12 @@ def GSAclone():
         mode = 'copy'
 
     if cmd_args['source'] is None:
-        sys.exit("The input source cannot be empty!")
+        sys.exit("The remote source cannot be empty!")
     else:
         source = cmd_args['source']
 
     if cmd_args['destination'] is None:
-        sys.exit("The input destination cannot be empty!")
+        sys.exit("The remote destination cannot be empty!")
     else:
         destination = cmd_args['destination']
     
