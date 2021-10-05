@@ -6,7 +6,7 @@
 # Please also keep in mind that this script is far from perfeect.
 #--------------------------------------------------#--------------------------------------------------#
 
-import subprocess, sys
+import sys, pathlib, subprocess
 
 subprocess.run('title GSAclone', shell=True)
 
@@ -24,20 +24,44 @@ def get_os():
 def python_version():
     clear_output()
 
-    version = (3, 5)
+    version = ".".join(map(str, sys.version_info[:3]))
 
-    if sys.version_info < version:
-        print(f'Your Python version is: {sys.version}')
-        sys.exit('Python 3.5 or newer is required to run this script.')
+    if sys.version_info < (3, 8):
+        print(f'You are running Python version ({version}).')
+        sys.exit('Python 3.8 or newer is required to run this script!')
     else:
         pass
+
+def rclone_check(rclone_path):
+    clear_output()
+
+    if rclone_path.exists() and rclone_path.is_dir():
+        try:
+            subprocess.run((f'"{rclone_path}/rclone.exe" -h'), shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except FileNotFoundError:
+            sys.exit('Unable to locate rclone.exe!')
+    else:
+        sys.exit('The specified rclone path does not exist!')
+
+def sa_check(service_account_path):
+    clear_output()
+
+    if service_account_path.exists() and service_account_path.is_dir():
+        sa_path_empty = not bool(sorted(service_account_path.rglob('*.json')))
+
+        if sa_path_empty:
+            sys.exit('The specified service account path does not seem to contain any service account file!')
+        else:
+            pass
+    else:
+        sys.exit('The specified service account path does not exist!')
 
 def GSAclone():
     get_os()
     python_version()
     clear_output()
 
-    import pathlib, glob, time, random, argparse
+    import glob, time, random, argparse
 
     parser = argparse.ArgumentParser(description='rclone but with multiple Google Service Accounts.')
     parser.add_argument('-m', '--mode', help='copy or sync', required=False)
@@ -49,7 +73,6 @@ def GSAclone():
     #
     # Configurations
     #
-
     var_loop = 3 # (Default is: "3")
     # Tells the script how many times it should be looping for.
     # Looping it 3 times should be enough, as 740 x 3 is more than 2TB,
@@ -68,7 +91,7 @@ def GSAclone():
     log_path = rclone_path # (Default is the same as "rclone_path")
     # Set this to "default" to use the same path as your rclone path, or set your own path.
 
-    service_account_path = pathlib.Path(r'D:/path/to/service_accounts')
+    service_account_path = pathlib.Path(r'D:/path/to/service_account')
     # Path to where you store your service account files.
     # Only change the text inside the single quotation ('') marks!
     
@@ -98,7 +121,7 @@ def GSAclone():
     log_mode = 'default' # (Default is: "default")
     # Set it to "json" if you want rclone to output the log into a json file, or set it to "default".
 
-    log_level = 'default' # (Default is: "default")
+    log_level = 'default' # (Default is: "default" or "notice")
     # The level of information that you want rclone to print into the log file.
     # Debugging levels:
     # DEBUG is equivalent to -vv. It outputs lots of debug info - useful for bug reports and really finding out what rclone is doing.
@@ -126,7 +149,7 @@ def GSAclone():
             --drive-stop-on-upload-limit=true\
             --drive-server-side-across-configs'
     #
-    # I'm thinking of using a config file instead, but as I still don't know how to use configparse, that's for another day lol
+    # I'm thinking of using a config file instead, but as I still don't know how to use configparser yet, that's for another day lol
     # For now, if you want to change something, edit the script directly.
     #
     #==================================================#==================================================#
@@ -135,7 +158,6 @@ def GSAclone():
     #
     # To do later: add checking whether the paths specified above do exist or not.
     #
-
     if (cmd_args['mode'] == "copy") or (cmd_args['mode'] == "sync"):
         mode = cmd_args['mode']
     else:
@@ -151,10 +173,15 @@ def GSAclone():
     else:
         destination = cmd_args['destination']
     
+    rclone_check(rclone_path)
+    sa_check(service_account_path)
+    
     if dry_run is True:
         dry_run = '--dry-run'
+        test_switch = True
     else:
         dry_run = ''
+        test_switch = False
     
     if verbose is True:
         if logging is True:
@@ -228,12 +255,15 @@ def GSAclone():
             log_level = "NOTICE"
         
         logging = f'--log-file="{log_path}/{log_name}{log_ext}" {log_mode} --log-level {log_level}'
+        log_switch = True
     else:
         logging = ''
         log_path = ''
+        log_name = ''
+        log_ext = ''
         log_mode = ''
         log_level = ''
-        log_ext = ''
+        log_switch = False
     #==================================================#==================================================#
 
     # Get all the service account names under the specified path (service_account_path).
@@ -249,20 +279,42 @@ def GSAclone():
     for x in range(var_loop):
         clear_output()
 
-        print(f'Performing task for {var_loop} time(s).')
-        print('\n' + ('=' * 70))
+        # print(f'Performing task for {var_loop} time(s).\n')
+        print(('=' * 80))
         print(f'Source: {source}')
         print(f'Destination: {destination}')
-        print(f'Using service account: {service_account}')
+        print(f'Using service account: {service_account}\n')
+        if test_switch is True:
+            print('rclone is currently running in simulated mode!')
+        else:
+            pass
+        if log_switch is True:
+            print(f'Logging is enabled! ({log_path}/{log_name}{log_ext})')
+        else:
+            pass
         print('')
 
         cmd = f'"{rclone_path}/rclone.exe" {mode} "{source}" "{destination}" {dry_run} {verbose} {show_progress} {compare} {check_first} {fast_list} {update_mod_time} {flags} --drive-service-account-file="{service_account_path}/{service_account}" {logging}'
-        subprocess.run(cmd, shell=True)
+        subprocess.run(cmd, shell=False)
 
-        print('')
-        print(('=' * 70) + '\n')
+        # Adds some line break to the log file.
+        # If the log is a json file, ignore it, as json does NOT support comment.
+        # If the log file is just a normal standard .txt file, then write line breaks.
+        if log_switch is True:
+            if log_mode == 'json':
+                pass
+            else:
+                try:
+                    log_file = open(f'{log_path}/{log_name}{log_ext}', 'a')
+                    log_file.write('\n' + ('=' * 80) + '\n' + 'GSAclone' + '\n' + ('=' * 80) + '\n\n')
+                    log_file.close()
+                except:
+                    pass
+        else:
+            pass
 
-        print(f'Delaying the next task for {var_sleep} second(s).')
+        print('\n' + ('=' * 80))
+        # print(f'Delaying the next task for {var_sleep} second(s).')
         time.sleep(var_sleep)
 
     sys.exit()
