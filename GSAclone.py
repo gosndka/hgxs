@@ -13,7 +13,7 @@ subprocess.run('title GSAclone', shell=True)
 def clear_output():
     subprocess.run('cls', shell=True)
 
-def get_os():
+def os_version():
     clear_output()
 
     if sys.platform.startswith('win32'):
@@ -56,15 +56,37 @@ def sa_check(service_account_path):
     else:
         sys.exit('The specified service account path does not exist!')
 
+def perform_remote_check(rclone_path, source, destination, show_progress, fast_list, quick_check, one_way_check, check_mode):
+    cmd = f'"{rclone_path}/rclone.exe" check "{source}" "{destination}" {show_progress} {fast_list} {quick_check} {one_way_check} {check_mode} "{rclone_path}/GSAclone_check.txt"'
+
+    try:
+        print('Performing check...\n')
+        
+        subprocess.run(cmd, shell=False)
+
+        try:
+            log_file = open(f'{rclone_path}/GSAclone_check.txt', 'a')
+            log_file.write('\n' + ('=' * 80) + '\n' + 'GSAclone' + '\n' + ('=' * 80) + '\n\n')
+            log_file.close()
+        except:
+            pass
+
+        print(f'\nCheck reports are printed into: {rclone_path}/GSAclone_check.txt')
+        print('=' * 80)
+    except:
+        pass
+
+    return
+
 def GSAclone():
-    get_os()
+    os_version()
     python_version()
     clear_output()
 
     import glob, time, random, argparse
 
     parser = argparse.ArgumentParser(description='rclone but with multiple Google Service Accounts.')
-    parser.add_argument('-m', '--mode', help='copy or sync', required=False)
+    parser.add_argument('-m', '--mode', help='copy, sync, or check', required=True)
     parser.add_argument('-s', '--source', help='Example: --source remote_1:', required=True)
     parser.add_argument('-d', '--destination', help='Example: --destination remote_2:', required=True)
     cmd_args = vars(parser.parse_args())
@@ -88,15 +110,25 @@ def GSAclone():
     # Only change the text inside the single quotation ('') marks!
     # You also do NOT need to type in "/rclone.exe" nor "rclone.exe" at the end of the path!
 
-    log_path = rclone_path # (Default is the same as "rclone_path")
-    # Set this to "default" to use the same path as your rclone path, or set your own path.
+    log_path = rclone_path
+    # Do NOT modify this, unless you know what you are doing!
 
-    service_account_path = pathlib.Path(r'D:/path/to/service_account')
+    service_account_path = pathlib.Path(r'D:/path/to/rclone/service_account')
     # Path to where you store your service account files.
     # Only change the text inside the single quotation ('') marks!
     
     service_account_list = []
     # Do NOT modify this!
+
+    perform_check = False # Performs rclone check. (Default is "False")
+    quick_check = False # Tells rclone to only check file size and not the hashes as well, speeds up checking. (Default is "False")
+    one_way_check = False # (Default is "False")
+    check_mode = 'default' # (Default is "default")
+    # default
+    # missing-on-source
+    # missing-on-destination
+    # match
+    # error
 
     dry_run = False # (Default is: "False")
     # Set this to "True" to run rclone in simulated mode and make no changes.
@@ -114,7 +146,7 @@ def GSAclone():
     # Please keep in mind that if you enable logging, you could ends up with a huge log file size
     # as the script is going to repeat itself for an X amount of time (as specified by the variable "var_loop" above).
 
-    log_name = 'GSAclone' # (Default is "GSAclone")
+    log_name = 'GSAclone_log' # (Default is "GSAclone")
     # The name of the log file.
     # Feel free to change it to whatever you want.
 
@@ -146,6 +178,8 @@ def GSAclone():
             --checkers 10\
             --transfers 10\
             --max-transfer 740G\
+            --create-empty-src-dirs\
+            --drive-acknowledge-abuse\
             --drive-stop-on-upload-limit=true\
             --drive-server-side-across-configs'
     #
@@ -158,10 +192,10 @@ def GSAclone():
     #
     # To do later: add checking whether the paths specified above do exist or not.
     #
-    if (cmd_args['mode'] == "copy") or (cmd_args['mode'] == "sync"):
+    if (cmd_args['mode'] == "copy") or (cmd_args['mode'] == "sync") or (cmd_args['mode'] == "check"):
         mode = cmd_args['mode']
     else:
-        mode = 'copy'
+        sys.exit('The operation mode can only be: copy, sync, or check!')
 
     if cmd_args['source'] is None:
         sys.exit("The remote source cannot be empty!")
@@ -264,6 +298,29 @@ def GSAclone():
         log_mode = ''
         log_level = ''
         log_switch = False
+    
+    if quick_check is True:
+        quick_check = '-size-only'
+    else:
+        quick_check = ''
+    
+    if one_way_check is True:
+        one_way_check = '--one-way'
+    else:
+        one_way_check = ''
+    
+    if check_mode == 'missing-on-source':
+        check_mode = '--missing-on-src'
+    elif check_mode == 'missing-on-desination':
+        check_mode = '--missing-on-dst'
+    elif check_mode == 'match':
+        check_mode = '--match'
+    elif check_mode == 'error':
+        check_mode = '--error'
+    elif check_mode == 'combined':
+        check_mode = '--combined'
+    else:
+        check_mode = '--differ'
     #==================================================#==================================================#
 
     # Get all the service account names under the specified path (service_account_path).
@@ -276,46 +333,54 @@ def GSAclone():
     # Call randomly from the service account list
     service_account = random.choice(service_account_list)
 
-    for x in range(var_loop):
+    if cmd_args['mode'] == 'check':
         clear_output()
 
-        # print(f'Performing task for {var_loop} time(s).\n')
         print(('=' * 80))
-        print(f'Source: {source}')
-        print(f'Destination: {destination}')
-        print(f'Using service account: {service_account}\n')
-        if test_switch is True:
-            print('rclone is currently running in simulated mode!')
-        else:
-            pass
-        if log_switch is True:
-            print(f'Logging is enabled! ({log_path}/{log_name}{log_ext})')
-        else:
-            pass
-        print('')
+        perform_remote_check(rclone_path, source, destination, show_progress, fast_list, quick_check, one_way_check, check_mode)
+    else:
+        for x in range(var_loop):
+            clear_output()
 
-        cmd = f'"{rclone_path}/rclone.exe" {mode} "{source}" "{destination}" {dry_run} {verbose} {show_progress} {compare} {check_first} {fast_list} {update_mod_time} {flags} --drive-service-account-file="{service_account_path}/{service_account}" {logging}'
-        subprocess.run(cmd, shell=False)
-
-        # Adds some line break to the log file.
-        # If the log is a json file, ignore it, as json does NOT support comment.
-        # If the log file is just a normal standard .txt file, then write line breaks.
-        if log_switch is True:
-            if log_mode == 'json':
-                pass
+            print(('=' * 80))
+            print(f'Source: {source}')
+            print(f'Destination: {destination}')
+            print(f'Using service account: {service_account}\n')
+            if test_switch is True:
+                print('rclone is currently running in simulated mode!')
             else:
-                try:
-                    log_file = open(f'{log_path}/{log_name}{log_ext}', 'a')
-                    log_file.write('\n' + ('=' * 80) + '\n' + 'GSAclone' + '\n' + ('=' * 80) + '\n\n')
-                    log_file.close()
-                except:
-                    pass
-        else:
-            pass
+                pass
+            if log_switch is True:
+                print(f'Logging is enabled! ({log_path}/{log_name}{log_ext})')
+            else:
+                pass
+            print('')
 
-        print('\n' + ('=' * 80))
-        # print(f'Delaying the next task for {var_sleep} second(s).')
-        time.sleep(var_sleep)
+            cmd = f'"{rclone_path}/rclone.exe" {mode} "{source}" "{destination}" {dry_run} {verbose} {show_progress} {compare} {check_first} {fast_list} {update_mod_time} {flags} --drive-service-account-file="{service_account_path}/{service_account}" {logging}'
+            subprocess.run(cmd, shell=False)
+
+            # Adds some line break to the log file.
+            # If the log is a json file, ignore it, as json does NOT support comment.
+            # If the log file is just a normal standard .txt file, then write line breaks.
+            if log_switch is True:
+                if log_mode == 'json':
+                    pass
+                else:
+                    try:
+                        log_file = open(f'{log_path}/{log_name}{log_ext}', 'a')
+                        log_file.write('\n' + ('=' * 80) + '\n' + 'GSAclone' + '\n' + ('=' * 80) + '\n\n')
+                        log_file.close()
+                    except:
+                        pass
+            else:
+                pass
+
+        if perform_check is True:
+            print('\n' + ('=' * 80) + '\n')
+            perform_remote_check(rclone_path, source, destination, show_progress, fast_list, quick_check, one_way_check, check_mode)
+        else:
+            print('\n' + ('=' * 80) + '\n')
+            time.sleep(var_sleep)
 
     sys.exit()
 
